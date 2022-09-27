@@ -13448,7 +13448,7 @@ function getAnnotationsForControl(controlRun) {
                 path: fileName.replace(process.cwd() + "/", ''),
                 start_line: parseInt(lineNumber),
                 end_line: parseInt(lineNumber),
-                annotation_level: 'failure',
+                annotation_level: 'warning',
                 message: result.reason,
                 start_column: 0,
                 end_column: 0,
