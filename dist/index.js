@@ -13820,7 +13820,7 @@ async function run() {
         await (0, setup_plugins_1.setupPlugins)(steampipePath, inputs);
         // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
         (0, core_1.addPath)(steampipePath);
-        (0, console_1.info)(`Found ${inputs.version} in cache @ ${await (0, io_1.which)("git", false)}`);
+        (0, console_1.info)(`Found ${inputs.version} in cache @ ${await (0, io_1.which)("steampipe", false)}`);
     }
     catch (error) {
         (0, core_1.setFailed)(error.message);

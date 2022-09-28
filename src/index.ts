@@ -15,7 +15,7 @@ async function run() {
 
     // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
     addPath(steampipePath)
-    info(`Found ${inputs.version} in cache @ ${await which("git", false)}`);
+    info(`Found ${inputs.version} in cache @ ${await which("steampipe", false)}`);
 
   } catch (error) {
     setFailed(error.message);
