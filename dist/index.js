@@ -11251,7 +11251,7 @@ async function run() {
         // install the mod right away
         // if this fails for some reason, we cannot continue
         const modPath = await (0, steampipe_1.installMod)(inputs.modRepository);
-        const steampipePath = await (0, io_1.which)("git", true);
+        const steampipePath = await (0, io_1.which)("steampipe", true);
         if (steampipePath) {
             // TODO : Error handling
         }
