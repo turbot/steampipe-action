@@ -1,4 +1,3 @@
-import { extractTar, extractZip } from "@actions/tool-cache";
 
 export const Targets = {
   linux: {
