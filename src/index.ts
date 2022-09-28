@@ -1,11 +1,14 @@
-import { addPath, endGroup, setFailed, startGroup } from "@actions/core";
+import { endGroup, setFailed, startGroup } from "@actions/core";
 import { context } from "@actions/github";
+import { find } from "@actions/tool-cache";
 import { info } from "console";
 import { appendFile, copyFile, readdir, readFile, unlink, writeFile } from "fs/promises";
 import { extname } from "path";
-import { Annotation, getAnnotations, parseResultFile, pushAnnotations } from "./annotate";
+import { arch } from "process";
+import { getAnnotations, parseResultFile, pushAnnotations } from "./annotate";
+import { Annotation } from "./annotate-models";
 import { ActionInput } from "./input";
-import { downloadAndDeflateSteampipe, installMod, installTerraformPlugin as installTerraformPlugin, installSteampipe as installSteampipeCLI, runSteampipeCheck, writeConnections as writeConnectionForPlugin } from "./steampipe";
+import { installMod, runSteampipeCheck } from "./steampipe";
 
 async function run() {
   try {
@@ -16,18 +19,11 @@ async function run() {
     // if this fails for some reason, we cannot continue
     const modPath = await installMod(inputs.modRepository)
 
-    const steampipePath = `${await downloadAndDeflateSteampipe(inputs.version)}/steampipe`;
-    await installSteampipeCLI(steampipePath)
-    await installTerraformPlugin(steampipePath)
-    try {
-      await writeConnectionForPlugin(inputs)
-    }
-    catch (e) {
-      throw new Error("error trying to create connection", e)
-    }
 
-    // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
-    addPath(steampipePath)
+    const steampipePath = find("steampipe", inputs.version, arch);
+    if (steampipePath) {
+      info(`Found ${inputs.version} in cache @ ${steampipePath}`);
+    }
 
     try {
       // since `steampipe check` may exit with a non-zero exit code - this is normal

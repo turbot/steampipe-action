@@ -13520,83 +13520,12 @@ exports.ActionInput = ActionInput;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runSteampipeCheck = exports.writeConnections = exports.installMod = exports.installTerraformPlugin = exports.installSteampipe = exports.downloadAndDeflateSteampipe = void 0;
+exports.runSteampipeCheck = exports.installMod = void 0;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
-const io_1 = __nccwpck_require__(7436);
-const tool_cache_1 = __nccwpck_require__(7784);
-const promises_1 = __nccwpck_require__(3292);
-const path_1 = __nccwpck_require__(1017);
-const process_1 = __nccwpck_require__(7282);
-const url_1 = __nccwpck_require__(7310);
-const targets_1 = __nccwpck_require__(2531);
 const github_1 = __nccwpck_require__(5438);
-/**
- *
- * Downloads and extracts the given steampipe version from the official steampipe releases in turbot/steampipe repository
- *
- * Attempts to cache the downloaded binary by platform and architecture.
- *
- * Note: when using the `latest` release, it is NEVER cached. This is because, `latest` is a pointer to an actual version which keeps changing as new releases are pushed out.
- *
- * TODO: attempt to extract the actual version of `latest` and use it.
- *
- * @param version The version of steampipe to download. Default: `latest`
- */
-async function downloadAndDeflateSteampipe(version = "latest") {
-    (0, core_1.startGroup)("Download Steampipe");
-    if (version !== "latest") {
-        (0, core_1.info)(`Checking if ${version} is cached`);
-        // try to find out if the cache has an entry for this.
-        const toolPath = (0, tool_cache_1.find)("steampipe", version, process_1.arch);
-        if (toolPath) {
-            (0, core_1.info)(`Found ${version} in cache @ ${toolPath}`);
-            return toolPath;
-        }
-        (0, core_1.info)(`Could not find ${version} in cache. Need to download.`);
-    }
-    const downloadLink = getSteampipeDownloadLink(version);
-    (0, core_1.info)(`Downloading ${version}...`);
-    const downloadedArchive = await (0, tool_cache_1.downloadTool)(downloadLink.toString());
-    (0, core_1.info)(`Download complete`);
-    (0, core_1.info)(`Extracting...`);
-    const extractedTo = await extractArchive(downloadedArchive);
-    if (version == "latest") {
-        (0, core_1.info)(`Skipping cache for 'latest' release.`);
-        // no caching of `latest` binary
-        return extractedTo;
-    }
-    (0, core_1.info)(`Caching ${version}`);
-    return await (0, tool_cache_1.cacheDir)(extractedTo, "steampipe", version, process_1.arch);
-}
-exports.downloadAndDeflateSteampipe = downloadAndDeflateSteampipe;
-/**
- * InstallSteampipe installs steampipe by setting up the embedded postgres database
- *
- * @param cliCmd The path to the steampipe binary
- */
-async function installSteampipe(cliCmd = "steampipe") {
-    (0, core_1.startGroup)("Installing Steampipe");
-    await (0, exec_1.exec)(cliCmd, ["query", "select 1"], { silent: true });
-    (0, core_1.endGroup)();
-    return;
-}
-exports.installSteampipe = installSteampipe;
-/**
- * Installs the terraform steampipe plugins
- *
- * @param cliCmd THe path to the steampipe binary
- * @returns
- */
-async function installTerraformPlugin(cliCmd = "steampipe") {
-    (0, core_1.startGroup)("Installing plugins");
-    (0, core_1.info)(`Installing 'terraform@latest'`);
-    await (0, exec_1.exec)(cliCmd, ["plugin", "install", "terraform"], { silent: true });
-    (0, core_1.info)(`Installation complete`);
-    (0, core_1.endGroup)();
-    return;
-}
-exports.installTerraformPlugin = installTerraformPlugin;
+const io_1 = __nccwpck_require__(7436);
+const process_1 = __nccwpck_require__(7282);
 /**
  * Installs a mod from the given Git Clone URL.
  * Forwards the GitURL as-is to `git clone`
@@ -13621,32 +13550,6 @@ async function installMod(modRepository = "") {
     return cloneTo;
 }
 exports.installMod = installMod;
-/**
- *
- * @param connectionData The connection configuration HCL. All connection configs are to be appended into a single HCL string.
- * @returns void
- */
-async function writeConnections(input) {
-    (0, core_1.startGroup)("Writing Connection Data");
-    const d = new Date();
-    const configDir = `${process_1.env["HOME"]}/.steampipe/config`;
-    (0, core_1.debug)("Cleaning up old config directory");
-    // clean up the config directory
-    // this will take care of any default configs done during plugin installation
-    // and also configs which were created in steps above this step which uses this action.
-    cleanConnectionConfigDir(configDir);
-    const configFileName = `config_${github_1.context.runId}.spc`;
-    (0, core_1.info)("Writing connection data");
-    await (0, promises_1.writeFile)(`${configDir}/${configFileName}`, `
-connection "tf_connection_${github_1.context.runId}" {
-  plugin = "terraform"
-  paths = ["${input.scanDirectory}/**/*.tf"]
-}
-`);
-    (0, core_1.info)("Finished writing connection data");
-    (0, core_1.endGroup)();
-}
-exports.writeConnections = writeConnections;
 /**
  *
  * @param cliCmd string - The path to the installed steampipe CLI.
@@ -13681,45 +13584,6 @@ async function runSteampipeCheck(cliCmd = "steampipe", workspaceChdir, actionInp
     (0, core_1.endGroup)();
 }
 exports.runSteampipeCheck = runSteampipeCheck;
-async function cleanConnectionConfigDir(configDir) {
-    const files = await (0, promises_1.readdir)(configDir);
-    for (const file of files) {
-        await (0, promises_1.unlink)((0, path_1.join)(configDir, file));
-    }
-}
-function getSteampipeDownloadLink(version) {
-    if (version === "latest") {
-        return new url_1.URL(`https://github.com/turbot/steampipe/releases/latest/download/steampipe_${targets_1.Targets[process_1.platform][process_1.arch]}`);
-    }
-    else {
-        return new url_1.URL(`https://github.com/turbot/steampipe/releases/download/${version}/steampipe_${targets_1.Targets[process_1.platform][process_1.arch]}`);
-    }
-}
-async function extractArchive(archivePath) {
-    let extractor = process_1.platform === "linux" ? tool_cache_1.extractTar : tool_cache_1.extractZip;
-    return await extractor(archivePath);
-}
-
-
-/***/ }),
-
-/***/ 2531:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Targets = void 0;
-exports.Targets = {
-    linux: {
-        x64: 'linux_amd64.tar.gz',
-        arm64: 'linux_arm64.tar.gz',
-    },
-    darwin: {
-        x64: 'darwin_amd64.zip',
-        arm64: 'darwin_arm64.zip',
-    }
-};
 
 
 /***/ }),
@@ -13955,9 +13819,11 @@ var exports = __webpack_exports__;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
+const tool_cache_1 = __nccwpck_require__(7784);
 const console_1 = __nccwpck_require__(6206);
 const promises_1 = __nccwpck_require__(3292);
 const path_1 = __nccwpck_require__(1017);
+const process_1 = __nccwpck_require__(7282);
 const annotate_1 = __nccwpck_require__(9088);
 const input_1 = __nccwpck_require__(6747);
 const steampipe_1 = __nccwpck_require__(9885);
@@ -13968,17 +13834,10 @@ async function run() {
         // install the mod right away
         // if this fails for some reason, we cannot continue
         const modPath = await (0, steampipe_1.installMod)(inputs.modRepository);
-        const steampipePath = `${await (0, steampipe_1.downloadAndDeflateSteampipe)(inputs.version)}/steampipe`;
-        await (0, steampipe_1.installSteampipe)(steampipePath);
-        await (0, steampipe_1.installTerraformPlugin)(steampipePath);
-        try {
-            await (0, steampipe_1.writeConnections)(inputs);
+        const steampipePath = (0, tool_cache_1.find)("steampipe", inputs.version, process_1.arch);
+        if (steampipePath) {
+            (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
         }
-        catch (e) {
-            throw new Error("error trying to create connection", e);
-        }
-        // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
-        (0, core_1.addPath)(steampipePath);
         try {
             // since `steampipe check` may exit with a non-zero exit code - this is normal
             await (0, steampipe_1.runSteampipeCheck)(steampipePath, modPath, inputs, ["json", "md"]);

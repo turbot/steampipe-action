@@ -1,6 +1,7 @@
 import { setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { readFile } from "fs/promises";
+import { Annotation, ControlRun, GroupResult, RootResult } from "./annotate-models";
 import { ActionInput } from "./input";
 
 /**
@@ -126,61 +127,3 @@ function getAnnotationsForControl(controlRun: ControlRun): Array<Annotation> {
 
   return annotations;
 }
-
-export interface Annotation {
-  path: string;
-  start_line: number;
-  end_line: number;
-  annotation_level: string;
-  message: string;
-  start_column: number;
-  end_column: number;
-}
-
-interface Status {
-  alarm?: number;
-  ok?: number;
-  info?: number;
-  skip?: number;
-  error?: number;
-}
-
-interface Summary {
-  status?: Status;
-}
-
-interface Dimension {
-  key?: string;
-  value?: string;
-}
-
-interface ControlResult {
-  reason?: string;
-  resource?: string;
-  status?: string;
-  dimensions?: Dimension[];
-}
-
-interface ControlRun {
-  summary?: Status;
-  results?: ControlResult[];
-  controlId?: string;
-  description?: string;
-  severity?: string;
-  tags?: string;
-  title?: string;
-  runStatus?: number;
-  runError?: string;
-}
-
-interface GroupResult {
-  groupId?: string;
-  title?: string;
-  description?: string;
-  tags?: string;
-  summary?: Summary;
-  groups: GroupResult[] | null;
-  controls: ControlRun[] | null;
-}
-
-type RootResult = GroupResult
