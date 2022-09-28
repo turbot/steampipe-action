@@ -18,14 +18,15 @@ export async function installMod(modRepository: string = "") {
   startGroup("Installing Mod")
   const cloneTo = `workspace_dir_${context.runId}_${new Date().getTime()}`
   info(`Installing mod from ${modRepository}`)
+  info(`Get PAth : ${await which("git", false)}`)
   try {
     await exec(await which("git", true), ["clone", modRepository, cloneTo], { silent: false })
   }
   catch (e) {
-    endGroup()
     throw new Error("error while trying to clone the mod: ", e)
+  } finally {
+    endGroup()
   }
-  endGroup()
   return cloneTo
 }
 
