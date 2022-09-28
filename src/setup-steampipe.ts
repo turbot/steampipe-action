@@ -17,17 +17,41 @@ import * as utils from "./utils";
  * @param version The version of steampipe to download. Default: `latest`
  */
 export const setupSteampipe = async (version: string = "latest"): Promise<string> => {
+  const steampipeVersions = await getSteampipeVersions()
+  const versionToInstall = utils.getVersionFromSpec(version, steampipeVersions);
+
+  info("------------------>>>>>>>>>>>>>>>" + versionToInstall)
+
+  if (!versionToInstall) {
+    throw new Error(`Unable to find Steampipe version '${version}'.`);
+  }
+
   let steampipePath: string;
-  const toolPath = checkCacheForSteampipeVersion(version);
+  const toolPath = checkCacheForSteampipeVersion(versionToInstall);
   if (toolPath) {
-    info(`Found ${version} in cache @ ${toolPath}`);
+    info(`Found ${versionToInstall} in cache @ ${toolPath}`);
     steampipePath = `${toolPath}/steampipe`;
   } else {
-    info(`Could not find ${version} in cache. Need to download.`);
-    steampipePath = `${await downloadAndDeflateSteampipe(version)}/steampipe`;
+    info(`Could not find ${versionToInstall} in cache. Need to download.`);
+    steampipePath = `${await downloadAndDeflateSteampipe(versionToInstall)}/steampipe`;
   }
   await installSteampipe(steampipePath);
   return steampipePath;
+}
+
+async function getSteampipeVersions() {
+  const resultJSONs = await utils.get(
+    'https://api.github.com/repos/turbot/steampipe/releases?per_page=100',
+    [1, 2, 3],
+  )
+  const steampipeVersionListing = []
+  resultJSONs.forEach((resultJSON) => {
+    JSON.parse(resultJSON)
+      .map((x) => x.tag_name)
+      .sort()
+      .forEach((v) => steampipeVersionListing.push(v))
+  });
+  return steampipeVersionListing;
 }
 
 function checkCacheForSteampipeVersion(version: string): string {
