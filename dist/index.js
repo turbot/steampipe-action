@@ -10996,7 +10996,7 @@ async function runSteampipeCheck(cliCmd = "steampipe", workspaceChdir, actionInp
     }
     const execEnv = process_1.env;
     execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
-    await (0, exec_1.exec)(cliCmd, args, {
+    await (0, exec_1.exec)("steampipe", args, {
         env: execEnv,
     });
     (0, core_1.endGroup)();
@@ -11251,7 +11251,7 @@ async function run() {
         // install the mod right away
         // if this fails for some reason, we cannot continue
         const modPath = await (0, steampipe_1.installMod)(inputs.modRepository);
-        const steampipePath = await (0, io_1.which)("steampipe", true);
+        const steampipePath = await (0, io_1.which)("steampipe", false);
         if (steampipePath) {
             // TODO : Error handling
         }

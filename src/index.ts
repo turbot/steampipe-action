@@ -21,7 +21,7 @@ async function run() {
     const modPath = await installMod(inputs.modRepository)
 
 
-    const steampipePath = await which("steampipe", true)
+    const steampipePath = await which("steampipe", false)
     if (steampipePath) {
       // TODO : Error handling
     }
