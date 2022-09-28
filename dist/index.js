@@ -13836,8 +13836,9 @@ async function run() {
         const modPath = await (0, steampipe_1.installMod)(inputs.modRepository);
         const steampipePath = (0, tool_cache_1.find)("steampipe", inputs.version, process_1.arch);
         if (steampipePath) {
-            (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
+            // TODO : Error handling
         }
+        (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
         try {
             // since `steampipe check` may exit with a non-zero exit code - this is normal
             await (0, steampipe_1.runSteampipeCheck)(steampipePath, modPath, inputs, ["json", "md"]);

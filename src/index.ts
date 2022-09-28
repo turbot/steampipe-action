@@ -22,8 +22,9 @@ async function run() {
 
     const steampipePath = find("steampipe", inputs.version, arch);
     if (steampipePath) {
-      info(`Found ${inputs.version} in cache @ ${steampipePath}`);
+      // TODO : Error handling
     }
+    info(`Found ${inputs.version} in cache @ ${steampipePath}`);
 
     try {
       // since `steampipe check` may exit with a non-zero exit code - this is normal
