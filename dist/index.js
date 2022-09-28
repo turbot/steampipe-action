@@ -13601,6 +13601,14 @@ module.exports = require("child_process");
 
 /***/ }),
 
+/***/ 6206:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("console");
+
+/***/ }),
+
 /***/ 6113:
 /***/ ((module) => {
 
@@ -13799,6 +13807,8 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core_1 = __nccwpck_require__(2186);
+const io_1 = __nccwpck_require__(7436);
+const console_1 = __nccwpck_require__(6206);
 const input_1 = __nccwpck_require__(6747);
 const setup_plugins_1 = __nccwpck_require__(3173);
 const setup_steampipe_1 = __nccwpck_require__(4857);
@@ -13810,6 +13820,7 @@ async function run() {
         await (0, setup_plugins_1.setupPlugins)(steampipePath, inputs);
         // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
         (0, core_1.addPath)(steampipePath);
+        (0, console_1.info)(`Found ${inputs.version} in cache @ ${await (0, io_1.which)("git", false)}`);
     }
     catch (error) {
         (0, core_1.setFailed)(error.message);
