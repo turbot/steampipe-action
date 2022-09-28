@@ -11,19 +11,13 @@ inputs:
     description: "Directory with infrastructure code to scan. If not specified, it considers root of the repository as default"
     required: false
     default: "."
-  mod:
-    description: "Git URL of specific terraform compliance mod that will be installed. This will be passed on to `git clone`"
-    required: true
-  plugin:
-    description: "The steampipe plugin that has to be installed"
-    required: false
+  # plugin:
+  #   description: "The steampipe plugin that has to be installed"
+  #   required: false
   version:
     description: "The steampipe version that has to be installed"
     required: false
     default: "latest"
-outputs:
-  mod-path:
-    description: The path in which the mod is installed
 runs:
   using: node16
   main: dist/index.js
