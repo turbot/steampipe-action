@@ -1,5 +1,6 @@
 import { endGroup, setFailed, startGroup } from "@actions/core";
 import { context } from "@actions/github";
+import { which } from "@actions/io";
 import { find } from "@actions/tool-cache";
 import { info } from "console";
 import { appendFile, copyFile, readdir, readFile, unlink, writeFile } from "fs/promises";
@@ -20,7 +21,7 @@ async function run() {
     const modPath = await installMod(inputs.modRepository)
 
 
-    const steampipePath = find("steampipe", inputs.version, arch);
+    const steampipePath = await which("git", true)
     if (steampipePath) {
       // TODO : Error handling
     }
