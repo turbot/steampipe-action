@@ -22,7 +22,7 @@ async function run() {
     const modPath = await cloneMod(inputs.modRepository)
 
     const steampipePath = checkCacheForSteampipeVersion(inputs.version)
-    if (steampipePath) {
+    if (!steampipePath) {
       throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
     }
     info(`Found ${inputs.version} in cache @ ${steampipePath}`);
