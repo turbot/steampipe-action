@@ -13514,51 +13514,62 @@ exports.ActionInput = ActionInput;
 
 /***/ }),
 
-/***/ 9885:
+/***/ 2738:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runSteampipeCheck = exports.installMod = void 0;
+exports.cloneMod = void 0;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
 const github_1 = __nccwpck_require__(5438);
 const io_1 = __nccwpck_require__(7436);
-const process_1 = __nccwpck_require__(7282);
 /**
  * Installs a mod from the given Git Clone URL.
  * Forwards the GitURL as-is to `git clone`
  *
  * @param modRepository The HTTP/SSH url of the mod repository. This will be passed in as-is to `git clone`
  */
-async function installMod(modRepository = "") {
+async function cloneMod(modRepository = "") {
     if (modRepository.trim().length === 0) {
         return Promise.resolve("");
     }
     (0, core_1.startGroup)("Installing Mod");
-    const cloneTo = `workspace_dir_${github_1.context.runId}_${new Date().getTime()}`;
+    const clonePath = `workspace_dir_${github_1.context.runId}_${new Date().getTime()}`;
     (0, core_1.info)(`Installing mod from ${modRepository}`);
-    (0, core_1.info)(`Get PAth : ${await (0, io_1.which)("git", false)}`);
     try {
-        await (0, exec_1.exec)(await (0, io_1.which)("git", true), ["clone", modRepository, cloneTo], { silent: false });
+        await (0, exec_1.exec)(await (0, io_1.which)("git", true), ["clone", modRepository, clonePath], { silent: false });
     }
     catch (e) {
+        (0, core_1.endGroup)();
         throw new Error("error while trying to clone the mod: ", e);
     }
-    finally {
-        (0, core_1.endGroup)();
-    }
-    return cloneTo;
+    (0, core_1.endGroup)();
+    return clonePath;
 }
-exports.installMod = installMod;
+exports.cloneMod = cloneMod;
+
+
+/***/ }),
+
+/***/ 9885:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runSteampipeCheck = void 0;
+const core_1 = __nccwpck_require__(2186);
+const exec_1 = __nccwpck_require__(1514);
+const process_1 = __nccwpck_require__(7282);
 /**
  *
  * @param cliCmd string - The path to the installed steampipe CLI.
  * @param workspaceChdir string - The path to the workspace directory where a mod (if any) is installed.
  * @param actionInputs string - The inputs that we got when this action was started.
  */
-async function runSteampipeCheck(cliCmd = "steampipe", workspaceChdir, actionInputs, xtraExports) {
+async function runSteampipeCheck(workspaceChdir, actionInputs, xtraExports) {
     (0, core_1.startGroup)(`Running Check`);
     let args = new Array();
     args.push("check", ...actionInputs.getRun());
@@ -13580,7 +13591,7 @@ async function runSteampipeCheck(cliCmd = "steampipe", workspaceChdir, actionInp
     }
     const execEnv = process_1.env;
     execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
-    await (0, exec_1.exec)("steampipe", args, {
+    return await (0, exec_1.getExecOutput)("steampipe", args, {
         env: execEnv,
     });
     (0, core_1.endGroup)();
@@ -13828,6 +13839,7 @@ const path_1 = __nccwpck_require__(1017);
 const process_1 = __nccwpck_require__(7282);
 const annotate_1 = __nccwpck_require__(9088);
 const input_1 = __nccwpck_require__(6747);
+const setup_mod_1 = __nccwpck_require__(2738);
 const steampipe_1 = __nccwpck_require__(9885);
 async function run() {
     try {
@@ -13835,18 +13847,19 @@ async function run() {
         await inputs.validate();
         // install the mod right away
         // if this fails for some reason, we cannot continue
-        const modPath = await (0, steampipe_1.installMod)(inputs.modRepository);
+        const modPath = await (0, setup_mod_1.cloneMod)(inputs.modRepository);
         const steampipePath = checkCacheForSteampipeVersion(inputs.version);
         if (steampipePath) {
-            // TODO : Error handling
+            throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
         }
         (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
         try {
             // since `steampipe check` may exit with a non-zero exit code - this is normal
-            await (0, steampipe_1.runSteampipeCheck)(steampipePath, modPath, inputs, ["json", "md"]);
+            const execOutput = await (0, steampipe_1.runSteampipeCheck)(modPath, inputs, ["json", "md"]);
+            (0, console_1.info)('---------------------------', execOutput);
         }
         catch (e) {
-            throw e;
+            // throw e
         }
         finally {
             await exportStepSummary(inputs);

@@ -9,7 +9,8 @@ import { arch } from "process";
 import { getAnnotations, parseResultFile, pushAnnotations } from "./annotate";
 import { Annotation } from "./annotate-models";
 import { ActionInput } from "./input";
-import { installMod, runSteampipeCheck } from "./steampipe";
+import { cloneMod } from "./setup-mod";
+import { runSteampipeCheck } from "./steampipe";
 
 async function run() {
   try {
@@ -18,21 +19,21 @@ async function run() {
 
     // install the mod right away
     // if this fails for some reason, we cannot continue
-    const modPath = await installMod(inputs.modRepository)
-
+    const modPath = await cloneMod(inputs.modRepository)
 
     const steampipePath = checkCacheForSteampipeVersion(inputs.version)
     if (steampipePath) {
-      // TODO : Error handling
+      throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
     }
     info(`Found ${inputs.version} in cache @ ${steampipePath}`);
 
     try {
       // since `steampipe check` may exit with a non-zero exit code - this is normal
-      await runSteampipeCheck(steampipePath, modPath, inputs, ["json", "md"])
+      const execOutput = await runSteampipeCheck(modPath, inputs, ["json", "md"])
+      info('---------------------------', execOutput);
     }
     catch (e) {
-      throw e
+      // throw e
     }
     finally {
       await exportStepSummary(inputs)
