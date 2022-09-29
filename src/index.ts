@@ -30,7 +30,7 @@ async function run() {
     try {
       // since `steampipe check` may exit with a non-zero exit code - this is normal
       const execOutput = await runSteampipeCheck(modPath, inputs, ["json", "md"])
-      info('---------------------------', execOutput);
+      info('execOutput---------------------------', execOutput);
     }
     catch (e) {
       // throw e

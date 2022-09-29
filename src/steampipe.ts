@@ -43,9 +43,9 @@ export async function runSteampipeCheck(workspaceChdir: string, actionInputs: Ac
   const execEnv = env
   execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120"
 
+  endGroup()
   return await getExecOutput("steampipe", args, {
     env: execEnv,
   })
 
-  endGroup()
 }

@@ -13591,10 +13591,10 @@ async function runSteampipeCheck(workspaceChdir, actionInputs, xtraExports) {
     }
     const execEnv = process_1.env;
     execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
+    (0, core_1.endGroup)();
     return await (0, exec_1.getExecOutput)("steampipe", args, {
         env: execEnv,
     });
-    (0, core_1.endGroup)();
 }
 exports.runSteampipeCheck = runSteampipeCheck;
 
@@ -13856,7 +13856,7 @@ async function run() {
         try {
             // since `steampipe check` may exit with a non-zero exit code - this is normal
             const execOutput = await (0, steampipe_1.runSteampipeCheck)(modPath, inputs, ["json", "md"]);
-            (0, console_1.info)('---------------------------', execOutput);
+            (0, console_1.info)('execOutput---------------------------', execOutput);
         }
         catch (e) {
             // throw e
