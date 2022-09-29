@@ -18,6 +18,9 @@ inputs:
     description: "The steampipe version that has to be installed"
     required: false
     default: "latest"
+outputs:
+  steampipe-version:
+    description: Exact version of Steampipe that was installed
 runs:
   using: node16
   main: dist/index.js
