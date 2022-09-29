@@ -6,8 +6,7 @@
  *
  * Note: when using the `latest` release, it is NEVER cached. This is because, `latest` is a pointer to an actual version which keeps changing as new releases are pushed out.
  *
- * TODO: attempt to extract the actual version of `latest` and use it.
- *
  * @param version The version of steampipe to download. Default: `latest`
  */
-export declare const setupSteampipe: (version?: string) => Promise<string>;
+export declare const setupSteampipe: (version: string) => Promise<string>;
+export declare function getSteampipeVersions(): Promise<any[]>;

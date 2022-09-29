@@ -1,6 +1,7 @@
 import { endGroup, info, startGroup } from "@actions/core";
 import { exec } from "@actions/exec";
 import { cacheDir, downloadTool, find } from "@actions/tool-cache";
+import { debug } from "console";
 import { arch } from "process";
 import * as utils from "./utils";
 
@@ -12,34 +13,24 @@ import * as utils from "./utils";
  * 
  * Note: when using the `latest` release, it is NEVER cached. This is because, `latest` is a pointer to an actual version which keeps changing as new releases are pushed out.
  * 
- * TODO: attempt to extract the actual version of `latest` and use it.
- * 
  * @param version The version of steampipe to download. Default: `latest`
  */
-export const setupSteampipe = async (version: string = "latest"): Promise<string> => {
-  const steampipeVersions = await getSteampipeVersions()
-  const versionToInstall = utils.getVersionFromSpec(version, steampipeVersions);
-
-  info("------------------>>>>>>>>>>>>>>>" + versionToInstall)
-
-  if (!versionToInstall) {
-    throw new Error(`Unable to find Steampipe version '${version}'.`);
-  }
-
+export const setupSteampipe = async (version: string): Promise<string> => {
+  info(`Installing steampipe ${version}`);
   let steampipePath: string;
-  const toolPath = checkCacheForSteampipeVersion(versionToInstall);
+  const toolPath = checkCacheForSteampipeVersion(version);
   if (toolPath) {
-    info(`Found ${versionToInstall} in cache @ ${toolPath}`);
+    debug(`Found ${version} in cache @ ${toolPath}`);
     steampipePath = `${toolPath}/steampipe`;
   } else {
-    info(`Could not find ${versionToInstall} in cache. Need to download.`);
-    steampipePath = `${await downloadAndDeflateSteampipe(versionToInstall)}/steampipe`;
+    debug(`Could not find ${version} in cache. Need to download.`);
+    steampipePath = `${await downloadAndDeflateSteampipe(version)}/steampipe`;
   }
   await installSteampipe(steampipePath);
   return steampipePath;
 }
 
-async function getSteampipeVersions() {
+export async function getSteampipeVersions() {
   const resultJSONs = await utils.get(
     'https://api.github.com/repos/turbot/steampipe/releases?per_page=100',
     [1, 2, 3],
@@ -64,7 +55,7 @@ function checkCacheForSteampipeVersion(version: string): string {
   return null;
 }
 
-async function downloadAndDeflateSteampipe(version: string = "latest") {
+async function downloadAndDeflateSteampipe(version: string) {
   startGroup("Download Steampipe");
   const downloadLink = utils.getSteampipeDownloadLink(version);
   info(`Downloading ${version}...`);

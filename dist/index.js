@@ -16442,6 +16442,66 @@ try {
 
 /***/ }),
 
+/***/ 6144:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+const io_1 = __nccwpck_require__(7436);
+const console_1 = __nccwpck_require__(6206);
+const input_1 = __nccwpck_require__(6747);
+const setup_plugins_1 = __nccwpck_require__(3173);
+const setup_steampipe_1 = __nccwpck_require__(4857);
+const utils = __importStar(__nccwpck_require__(1314));
+async function run() {
+    try {
+        const inputs = new input_1.ActionInput();
+        inputs.validate();
+        const steampipeVersions = await (0, setup_steampipe_1.getSteampipeVersions)();
+        const versionToInstall = utils.getVersionFromSpec(inputs.version, steampipeVersions);
+        if (!versionToInstall) {
+            throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
+        }
+        const steampipePath = await (0, setup_steampipe_1.setupSteampipe)(versionToInstall);
+        await (0, setup_plugins_1.setupPlugins)(steampipePath, inputs);
+        // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
+        (0, core_1.addPath)(steampipePath);
+        (0, console_1.info)(`Found ${versionToInstall} in cache @ ${await (0, io_1.which)("steampipe", false)}`);
+    }
+    catch (error) {
+        (0, core_1.setFailed)(error.message);
+    }
+}
+run();
+
+
+/***/ }),
+
 /***/ 6747:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -16457,7 +16517,7 @@ class ActionInput {
     constructor() {
         // this.plugin = getInput("plugin", { required: true });
         this.scanDirectory = (0, core_1.getInput)("directory");
-        this.version = (0, core_1.getInput)("version") || 'latest';
+        this.version = (0, core_1.getInput)("version");
     }
     validate() {
         // if (this.plugin.trim().length == 0) {
@@ -16563,10 +16623,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setupSteampipe = void 0;
+exports.getSteampipeVersions = exports.setupSteampipe = void 0;
 const core_1 = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
 const tool_cache_1 = __nccwpck_require__(7784);
+const console_1 = __nccwpck_require__(6206);
 const process_1 = __nccwpck_require__(7282);
 const utils = __importStar(__nccwpck_require__(1314));
 /**
@@ -16577,26 +16638,19 @@ const utils = __importStar(__nccwpck_require__(1314));
  *
  * Note: when using the `latest` release, it is NEVER cached. This is because, `latest` is a pointer to an actual version which keeps changing as new releases are pushed out.
  *
- * TODO: attempt to extract the actual version of `latest` and use it.
- *
  * @param version The version of steampipe to download. Default: `latest`
  */
-const setupSteampipe = async (version = "latest") => {
-    const steampipeVersions = await getSteampipeVersions();
-    const versionToInstall = utils.getVersionFromSpec(version, steampipeVersions);
-    (0, core_1.info)("------------------>>>>>>>>>>>>>>>" + versionToInstall);
-    if (!versionToInstall) {
-        throw new Error(`Unable to find Steampipe version '${version}'.`);
-    }
+const setupSteampipe = async (version) => {
+    (0, core_1.info)(`Installing steampipe ${version}`);
     let steampipePath;
-    const toolPath = checkCacheForSteampipeVersion(versionToInstall);
+    const toolPath = checkCacheForSteampipeVersion(version);
     if (toolPath) {
-        (0, core_1.info)(`Found ${versionToInstall} in cache @ ${toolPath}`);
+        (0, console_1.debug)(`Found ${version} in cache @ ${toolPath}`);
         steampipePath = `${toolPath}/steampipe`;
     }
     else {
-        (0, core_1.info)(`Could not find ${versionToInstall} in cache. Need to download.`);
-        steampipePath = `${await downloadAndDeflateSteampipe(versionToInstall)}/steampipe`;
+        (0, console_1.debug)(`Could not find ${version} in cache. Need to download.`);
+        steampipePath = `${await downloadAndDeflateSteampipe(version)}/steampipe`;
     }
     await installSteampipe(steampipePath);
     return steampipePath;
@@ -16613,6 +16667,7 @@ async function getSteampipeVersions() {
     });
     return steampipeVersionListing;
 }
+exports.getSteampipeVersions = getSteampipeVersions;
 function checkCacheForSteampipeVersion(version) {
     if (version !== "latest") {
         (0, core_1.info)(`Checking if ${version} is cached`);
@@ -16622,7 +16677,7 @@ function checkCacheForSteampipeVersion(version) {
     }
     return null;
 }
-async function downloadAndDeflateSteampipe(version = "latest") {
+async function downloadAndDeflateSteampipe(version) {
     (0, core_1.startGroup)("Download Steampipe");
     const downloadLink = utils.getSteampipeDownloadLink(version);
     (0, core_1.info)(`Downloading ${version}...`);
@@ -17016,37 +17071,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __nccwpck_require__(2186);
-const io_1 = __nccwpck_require__(7436);
-const console_1 = __nccwpck_require__(6206);
-const input_1 = __nccwpck_require__(6747);
-const setup_plugins_1 = __nccwpck_require__(3173);
-const setup_steampipe_1 = __nccwpck_require__(4857);
-async function run() {
-    try {
-        const inputs = new input_1.ActionInput();
-        inputs.validate();
-        const steampipePath = await (0, setup_steampipe_1.setupSteampipe)(inputs.version);
-        await (0, setup_plugins_1.setupPlugins)(steampipePath, inputs);
-        // add the path to the Steampipe CLI so that it can be used by subsequent steps if required
-        (0, core_1.addPath)(steampipePath);
-        (0, console_1.info)(`Found ${inputs.version} in cache @ ${await (0, io_1.which)("steampipe", false)}`);
-    }
-    catch (error) {
-        (0, core_1.setFailed)(error.message);
-    }
-}
-run();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(6144);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;

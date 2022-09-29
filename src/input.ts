@@ -8,7 +8,7 @@ export class ActionInput {
   constructor() {
     // this.plugin = getInput("plugin", { required: true });
     this.scanDirectory = getInput("directory");
-    this.version = getInput("version") || 'latest';
+    this.version = getInput("version");
   }
 
   validate() {
