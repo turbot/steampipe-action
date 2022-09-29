@@ -1,8 +1,28 @@
-import { setFailed } from "@actions/core";
+import { endGroup, setFailed, startGroup } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
+import { info } from "console";
 import { readFile } from "fs/promises";
 import { Annotation, ControlRun, GroupResult, RootResult } from "./annotate-models";
 import { ActionInput } from "./input";
+import * as utils from "./utils";
+
+export async function processAnnotations(input: ActionInput) {
+  if (context.payload.pull_request == null) {
+    return
+  }
+  startGroup("Processing output")
+  info("Fetching output")
+  const jsonFiles = await utils.getExportedJSONFiles(input)
+  const annotations: Array<Annotation> = []
+  for (let j of jsonFiles) {
+    const result = await parseResultFile(j)
+    annotations.push(...getAnnotations(result))
+  }
+  info(`Pushing Annotations`)
+  await pushAnnotations(input, annotations)
+  utils.removeFiles(jsonFiles)
+  endGroup()
+}
 
 /**
  * Returns an array of annotations for a RootResult
@@ -15,6 +35,11 @@ export function getAnnotations(result: RootResult): Array<Annotation> {
     return null
   }
   return getAnnotationsForGroup(result)
+}
+
+export async function parseResultFile(filePath: string): Promise<RootResult> {
+  const fileContent = await readFile(filePath)
+  return (JSON.parse(fileContent.toString()) as RootResult)
 }
 
 /**
@@ -68,11 +93,6 @@ export async function pushAnnotations(input: ActionInput, annotations: Array<Ann
   } catch (error) {
     setFailed(error);
   }
-}
-
-export async function parseResultFile(filePath: string): Promise<RootResult> {
-  const fileContent = await readFile(filePath)
-  return (JSON.parse(fileContent.toString()) as RootResult)
 }
 
 function getAnnotationsForGroup(group: GroupResult): Array<Annotation> {

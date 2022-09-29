@@ -13339,15 +13339,58 @@ function wrappy (fn, cb) {
 /***/ }),
 
 /***/ 9088:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parseResultFile = exports.pushAnnotations = exports.getAnnotations = void 0;
+exports.pushAnnotations = exports.parseResultFile = exports.getAnnotations = exports.processAnnotations = void 0;
 const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
+const console_1 = __nccwpck_require__(6206);
 const promises_1 = __nccwpck_require__(3292);
+const utils = __importStar(__nccwpck_require__(1314));
+async function processAnnotations(input) {
+    if (github_1.context.payload.pull_request == null) {
+        return;
+    }
+    (0, core_1.startGroup)("Processing output");
+    (0, console_1.info)("Fetching output");
+    const jsonFiles = await utils.getExportedJSONFiles(input);
+    const annotations = [];
+    for (let j of jsonFiles) {
+        const result = await parseResultFile(j);
+        annotations.push(...getAnnotations(result));
+    }
+    (0, console_1.info)(`Pushing Annotations`);
+    await pushAnnotations(input, annotations);
+    utils.removeFiles(jsonFiles);
+    (0, core_1.endGroup)();
+}
+exports.processAnnotations = processAnnotations;
 /**
  * Returns an array of annotations for a RootResult
  *
@@ -13361,6 +13404,11 @@ function getAnnotations(result) {
     return getAnnotationsForGroup(result);
 }
 exports.getAnnotations = getAnnotations;
+async function parseResultFile(filePath) {
+    const fileContent = await (0, promises_1.readFile)(filePath);
+    return JSON.parse(fileContent.toString());
+}
+exports.parseResultFile = parseResultFile;
 /**
  * Pushes the annotations to Github.
  *
@@ -13407,11 +13455,6 @@ async function pushAnnotations(input, annotations) {
     }
 }
 exports.pushAnnotations = pushAnnotations;
-async function parseResultFile(filePath) {
-    const fileContent = await (0, promises_1.readFile)(filePath);
-    return JSON.parse(fileContent.toString());
-}
-exports.parseResultFile = parseResultFile;
 function getAnnotationsForGroup(group) {
     const annotations = [];
     if (group.groups) {
@@ -13457,6 +13500,77 @@ function getAnnotationsForControl(controlRun) {
     }
     return annotations;
 }
+
+
+/***/ }),
+
+/***/ 6144:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __nccwpck_require__(2186);
+const console_1 = __nccwpck_require__(6206);
+const annotate_1 = __nccwpck_require__(9088);
+const input_1 = __nccwpck_require__(6747);
+const run_checks_1 = __nccwpck_require__(6931);
+const setup_mod_1 = __nccwpck_require__(2738);
+const utils = __importStar(__nccwpck_require__(1314));
+async function run() {
+    try {
+        const inputs = new input_1.ActionInput();
+        await inputs.validate();
+        // install the mod right away
+        // if this fails for some reason, we cannot continue
+        const modPath = await (0, setup_mod_1.cloneMod)(inputs.modRepository);
+        // Checks if steampipe is installed
+        const steampipePath = utils.checkCacheForSteampipeVersion(inputs.version);
+        if (!steampipePath) {
+            throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
+        }
+        (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
+        try {
+            // since `steampipe check` may exit with a non-zero exit code - this is normal
+            const execOutput = await (0, run_checks_1.runSteampipeCheck)(modPath, inputs, ["json", "md"]);
+        }
+        catch (e) {
+            (0, console_1.debug)(e);
+            // throw e
+        }
+        finally {
+            await utils.exportStepSummary(inputs);
+            await (0, annotate_1.processAnnotations)(inputs);
+        }
+    }
+    catch (error) {
+        (0, core_1.setFailed)(error.message);
+    }
+}
+run();
 
 
 /***/ }),
@@ -13514,6 +13628,52 @@ exports.ActionInput = ActionInput;
 
 /***/ }),
 
+/***/ 6931:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.runSteampipeCheck = void 0;
+const core_1 = __nccwpck_require__(2186);
+const exec_1 = __nccwpck_require__(1514);
+const process_1 = __nccwpck_require__(7282);
+/**
+ *
+ * @param workspaceChdir string - The path to the workspace directory where a mod (if any) is installed.
+ * @param actionInputs string - The inputs that we got when this action was started.
+ */
+async function runSteampipeCheck(workspaceChdir, actionInputs, xtraExports) {
+    (0, core_1.startGroup)(`Running Check`);
+    let args = new Array();
+    args.push("check", ...actionInputs.getRun());
+    if (actionInputs.output.length > 0) {
+        args.push(`--output=${actionInputs.output}`);
+    }
+    if (actionInputs.export.length > 0) {
+        args.push(`--export=${actionInputs.export}`);
+    }
+    for (let f of xtraExports) {
+        // add an export for self, which we will remove later on
+        args.push(`--export=${f}`);
+    }
+    if (actionInputs.where.length > 0) {
+        args.push(`--where=${actionInputs.where}`);
+    }
+    if (workspaceChdir.trim().length > 0) {
+        args.push(`--workspace-chdir=${workspaceChdir}`);
+    }
+    process_1.env.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
+    (0, core_1.endGroup)();
+    return await (0, exec_1.getExecOutput)("steampipe", args, {
+        env: process_1.env,
+    });
+}
+exports.runSteampipeCheck = runSteampipeCheck;
+
+
+/***/ }),
+
 /***/ 2738:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -13553,50 +13713,80 @@ exports.cloneMod = cloneMod;
 
 /***/ }),
 
-/***/ 9885:
+/***/ 1314:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runSteampipeCheck = void 0;
+exports.checkCacheForSteampipeVersion = exports.getExportedJSONFiles = exports.removeFiles = exports.exportStepSummary = void 0;
 const core_1 = __nccwpck_require__(2186);
-const exec_1 = __nccwpck_require__(1514);
+const tool_cache_1 = __nccwpck_require__(7784);
+const console_1 = __nccwpck_require__(6206);
+const promises_1 = __nccwpck_require__(3292);
+const path_1 = __nccwpck_require__(1017);
 const process_1 = __nccwpck_require__(7282);
-/**
- *
- * @param cliCmd string - The path to the installed steampipe CLI.
- * @param workspaceChdir string - The path to the workspace directory where a mod (if any) is installed.
- * @param actionInputs string - The inputs that we got when this action was started.
- */
-async function runSteampipeCheck(workspaceChdir, actionInputs, xtraExports) {
-    (0, core_1.startGroup)(`Running Check`);
-    let args = new Array();
-    args.push("check", ...actionInputs.getRun());
-    if (actionInputs.output.length > 0) {
-        args.push(`--output=${actionInputs.output}`);
-    }
-    if (actionInputs.export.length > 0) {
-        args.push(`--export=${actionInputs.export}`);
-    }
-    for (let f of xtraExports) {
-        // add an export for self, which we will remove later on
-        args.push(`--export=${f}`);
-    }
-    if (actionInputs.where.length > 0) {
-        args.push(`--where=${actionInputs.where}`);
-    }
-    if (workspaceChdir.trim().length > 0) {
-        args.push(`--workspace-chdir=${workspaceChdir}`);
-    }
-    const execEnv = process_1.env;
-    execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
+async function exportStepSummary(input) {
+    (0, core_1.startGroup)("Sending Summary");
+    (0, console_1.info)("Fetching output");
+    const mdFiles = await getExportedSummaryMarkdownFiles(input);
+    (0, console_1.info)("Combining outputs");
+    await combineFiles(mdFiles, "summary.md");
+    (0, console_1.info)("Pushing to Platform");
+    await (0, promises_1.copyFile)("summary.md", input.summaryFile);
+    removeFiles(mdFiles);
     (0, core_1.endGroup)();
-    return await (0, exec_1.getExecOutput)("steampipe", args, {
-        env: execEnv,
-    });
 }
-exports.runSteampipeCheck = runSteampipeCheck;
+exports.exportStepSummary = exportStepSummary;
+async function removeFiles(files) {
+    for (let f of files) {
+        await (0, promises_1.unlink)(f);
+    }
+}
+exports.removeFiles = removeFiles;
+async function combineFiles(files, writeTo) {
+    await (0, promises_1.writeFile)(writeTo, "");
+    for (let file of files) {
+        const content = await (0, promises_1.readFile)(file);
+        await (0, promises_1.appendFile)(writeTo, content);
+    }
+}
+async function getExportedSummaryMarkdownFiles(input) {
+    return await getExportedFileWithExtn(input, "md");
+}
+async function getExportedJSONFiles(input) {
+    return await getExportedFileWithExtn(input, "json");
+}
+exports.getExportedJSONFiles = getExportedJSONFiles;
+async function getExportedFileWithExtn(input, extn) {
+    let files = new Array();
+    const dirContents = await (0, promises_1.readdir)(".", { withFileTypes: true });
+    for (let d of dirContents) {
+        if (!d.isFile()) {
+            continue;
+        }
+        if ((0, path_1.extname)(d.name).length < 2) {
+            continue;
+        }
+        for (let r of input.getRun()) {
+            if (d.name.startsWith(r) && (0, path_1.extname)(d.name) == `.${extn}`) {
+                files.push(d.name);
+            }
+        }
+    }
+    return files;
+}
+function checkCacheForSteampipeVersion(version) {
+    if (version !== "latest") {
+        (0, console_1.info)(`Checking if ${version} is cached`);
+        // try to find out if the cache has an entry for this.
+        const toolPath = (0, tool_cache_1.find)("steampipe", version, process_1.arch);
+        (0, core_1.addPath)(toolPath);
+        return toolPath;
+    }
+    return null;
+}
+exports.checkCacheForSteampipeVersion = checkCacheForSteampipeVersion;
 
 
 /***/ }),
@@ -13823,131 +14013,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __nccwpck_require__(2186);
-const github_1 = __nccwpck_require__(5438);
-const tool_cache_1 = __nccwpck_require__(7784);
-const console_1 = __nccwpck_require__(6206);
-const promises_1 = __nccwpck_require__(3292);
-const path_1 = __nccwpck_require__(1017);
-const process_1 = __nccwpck_require__(7282);
-const annotate_1 = __nccwpck_require__(9088);
-const input_1 = __nccwpck_require__(6747);
-const setup_mod_1 = __nccwpck_require__(2738);
-const steampipe_1 = __nccwpck_require__(9885);
-async function run() {
-    try {
-        const inputs = new input_1.ActionInput();
-        await inputs.validate();
-        // install the mod right away
-        // if this fails for some reason, we cannot continue
-        const modPath = await (0, setup_mod_1.cloneMod)(inputs.modRepository);
-        const steampipePath = checkCacheForSteampipeVersion(inputs.version);
-        if (!steampipePath) {
-            throw new Error(`Unable to find Steampipe version '${inputs.version}'.`);
-        }
-        (0, console_1.info)(`Found ${inputs.version} in cache @ ${steampipePath}`);
-        try {
-            // since `steampipe check` may exit with a non-zero exit code - this is normal
-            const execOutput = await (0, steampipe_1.runSteampipeCheck)(modPath, inputs, ["json", "md"]);
-            (0, console_1.info)('execOutput---------------------------', execOutput);
-        }
-        catch (e) {
-            // throw e
-        }
-        finally {
-            await exportStepSummary(inputs);
-            await exportAnnotations(inputs);
-        }
-    }
-    catch (error) {
-        (0, core_1.setFailed)(error.message);
-    }
-}
-function checkCacheForSteampipeVersion(version) {
-    if (version !== "latest") {
-        (0, console_1.info)(`Checking if ${version} is cached`);
-        // try to find out if the cache has an entry for this.
-        const toolPath = (0, tool_cache_1.find)("steampipe", version, process_1.arch);
-        (0, core_1.addPath)(toolPath);
-        return toolPath;
-    }
-    return null;
-}
-async function exportAnnotations(input) {
-    if (github_1.context.payload.pull_request == null) {
-        return;
-    }
-    (0, core_1.startGroup)("Processing output");
-    (0, console_1.info)("Fetching output");
-    const jsonFiles = await getExportedJSONFiles(input);
-    const annotations = [];
-    for (let j of jsonFiles) {
-        const result = await (0, annotate_1.parseResultFile)(j);
-        annotations.push(...(0, annotate_1.getAnnotations)(result));
-    }
-    (0, console_1.info)(`Pushing Annotations`);
-    await (0, annotate_1.pushAnnotations)(input, annotations);
-    removeFiles(jsonFiles);
-    (0, core_1.endGroup)();
-}
-async function exportStepSummary(input) {
-    (0, core_1.startGroup)("Sending Summary");
-    (0, console_1.info)("Fetching output");
-    const mdFiles = await getExportedSummaryMarkdownFiles(input);
-    (0, console_1.info)("Combining outputs");
-    await combineFiles(mdFiles, "summary.md");
-    (0, console_1.info)("Pushing to Platform");
-    await (0, promises_1.copyFile)("summary.md", input.summaryFile);
-    removeFiles(mdFiles);
-    (0, core_1.endGroup)();
-}
-async function removeFiles(files) {
-    for (let f of files) {
-        await (0, promises_1.unlink)(f);
-    }
-}
-async function combineFiles(files, writeTo) {
-    await (0, promises_1.writeFile)(writeTo, "");
-    for (let file of files) {
-        const content = await (0, promises_1.readFile)(file);
-        await (0, promises_1.appendFile)(writeTo, content);
-    }
-}
-async function getExportedSummaryMarkdownFiles(input) {
-    return await getExportedFileWithExtn(input, "md");
-}
-async function getExportedJSONFiles(input) {
-    return await getExportedFileWithExtn(input, "json");
-}
-async function getExportedFileWithExtn(input, extn) {
-    let files = new Array();
-    const dirContents = await (0, promises_1.readdir)(".", { withFileTypes: true });
-    for (let d of dirContents) {
-        if (!d.isFile()) {
-            continue;
-        }
-        if ((0, path_1.extname)(d.name).length < 2) {
-            continue;
-        }
-        for (let r of input.getRun()) {
-            if (d.name.startsWith(r) && (0, path_1.extname)(d.name) == `.${extn}`) {
-                files.push(d.name);
-            }
-        }
-    }
-    return files;
-}
-run();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(6144);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
