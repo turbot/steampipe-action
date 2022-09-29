@@ -69,7 +69,7 @@ export async function runSteampipeCheck(cliCmd: string = "steampipe", workspaceC
   const execEnv = env
   execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120"
 
-  await exec(cliCmd, args, {
+  await exec("steampipe", args, {
     env: execEnv,
   })
 

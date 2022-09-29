@@ -1,4 +1,4 @@
-import { endGroup, setFailed, startGroup } from "@actions/core";
+import { addPath, endGroup, setFailed, startGroup } from "@actions/core";
 import { context } from "@actions/github";
 import { which } from "@actions/io";
 import { find } from "@actions/tool-cache";
@@ -49,6 +49,7 @@ function checkCacheForSteampipeVersion(version: string): string {
     info(`Checking if ${version} is cached`);
     // try to find out if the cache has an entry for this.
     const toolPath = find("steampipe", version, arch);
+    addPath(toolPath)
     return toolPath;
   }
   return null;

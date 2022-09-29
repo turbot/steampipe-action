@@ -13580,7 +13580,7 @@ async function runSteampipeCheck(cliCmd = "steampipe", workspaceChdir, actionInp
     }
     const execEnv = process_1.env;
     execEnv.STEAMPIPE_CHECK_DISPLAY_WIDTH = "120";
-    await (0, exec_1.exec)(cliCmd, args, {
+    await (0, exec_1.exec)("steampipe", args, {
         env: execEnv,
     });
     (0, core_1.endGroup)();
@@ -13862,6 +13862,7 @@ function checkCacheForSteampipeVersion(version) {
         (0, console_1.info)(`Checking if ${version} is cached`);
         // try to find out if the cache has an entry for this.
         const toolPath = (0, tool_cache_1.find)("steampipe", version, process_1.arch);
+        (0, core_1.addPath)(toolPath);
         return toolPath;
     }
     return null;
