@@ -21,7 +21,7 @@ async function run() {
     const modPath = await installMod(inputs.modRepository)
 
 
-    const steampipePath = await which("steampipe", false)
+    const steampipePath = checkCacheForSteampipeVersion(inputs.version)
     if (steampipePath) {
       // TODO : Error handling
     }
@@ -42,6 +42,16 @@ async function run() {
   } catch (error) {
     setFailed(error.message);
   }
+}
+
+function checkCacheForSteampipeVersion(version: string): string {
+  if (version !== "latest") {
+    info(`Checking if ${version} is cached`);
+    // try to find out if the cache has an entry for this.
+    const toolPath = find("steampipe", version, arch);
+    return toolPath;
+  }
+  return null;
 }
 
 async function exportAnnotations(input: ActionInput) {
