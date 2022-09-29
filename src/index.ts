@@ -27,7 +27,6 @@ async function run() {
       const execOutput = await runSteampipeCheck(modPath, inputs, ["json", "md"])
     }
     catch (e) {
-      debug(e)
       // throw e
     }
     finally {
